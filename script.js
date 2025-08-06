@@ -15,10 +15,8 @@ Maintain an accessible, clear, and visually pleasant interaction style suitable 
 Your goal is to make routine creation effortless and enjoyable, leading users to confident, informed beauty choices with their L’Oréal products.
 All L’Oréal-owned products are welcomed to be talked about, such as Cerave, etc.
 Naturally incorporate beauty-relevant emojis (such as 💄, 💇‍♀️, 🧴, 💧, ✨) to emphasize products, steps, or to add a fun touch, but avoid overusing the same emoji within a single message.
-You can use other emojis too to enhance the conversation.`
+You can use other emojis too to enhance the conversation.`,
 };
-
-
 
 // Store the conversation history
 const messages = [systemPrompt];
@@ -116,16 +114,16 @@ function displayProducts(products) {
   `
     )
     .join("");
-    
+
   // Add click event listeners to all product cards
-  document.querySelectorAll('.product-card').forEach(card => {
+  document.querySelectorAll(".product-card").forEach((card) => {
     // Check if product is already selected and apply selected class
     const productId = parseInt(card.dataset.id);
-    if (selectedProducts.some(product => product.id === productId)) {
-      card.classList.add('selected');
+    if (selectedProducts.some((product) => product.id === productId)) {
+      card.classList.add("selected");
     }
-    
-    card.addEventListener('click', handleProductSelection);
+
+    card.addEventListener("click", handleProductSelection);
   });
 }
 
@@ -136,7 +134,7 @@ async function filterAndDisplayProducts() {
   const searchTerm = searchFilter.value.toLowerCase().trim();
 
   // If the category is the initial default and there's no search term, show the placeholder.
-  if (selectedCategory == "") {
+  if (searchTerm == "") {
     productsContainer.innerHTML = `
       <div class="placeholder-message">
         Select a category to view products
@@ -200,13 +198,16 @@ chatForm.addEventListener("submit", async (e) => {
 
   try {
     // Send messages array to Cloudflare Worker (OpenAI API)
-    const response = await fetch("https://the-worker.aidanggrace.workers.dev/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ messages })
-    });
+    const response = await fetch(
+      "https://the-worker.aidanggrace.workers.dev/",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ messages }),
+      }
+    );
 
     // Parse the response
     const data = await response.json();
@@ -228,7 +229,10 @@ chatForm.addEventListener("submit", async (e) => {
       aiMsgDiv.innerHTML = ""; // Clear loading text
     } else {
       chatWindow.innerHTML += `<div class="msg ai"></div>`;
-      aiMsgDiv = chatWindow.querySelectorAll(".msg.ai")[chatWindow.querySelectorAll(".msg.ai").length - 1];
+      aiMsgDiv =
+        chatWindow.querySelectorAll(".msg.ai")[
+          chatWindow.querySelectorAll(".msg.ai").length - 1
+        ];
     }
     typeText(aiMsgDiv, aiMsgHtml, 9, () => {
       // Re-enable form elements after response is typed
@@ -253,25 +257,27 @@ function handleProductSelection(e) {
   const productName = card.dataset.name;
   const productBrand = card.dataset.brand;
   const productImage = card.dataset.image;
-  
+
   // Check if product is already selected
-  const existingIndex = selectedProducts.findIndex(product => product.id === productId);
-  
+  const existingIndex = selectedProducts.findIndex(
+    (product) => product.id === productId
+  );
+
   if (existingIndex > -1) {
     // Product is already selected, remove it
     selectedProducts.splice(existingIndex, 1);
-    card.classList.remove('selected');
+    card.classList.remove("selected");
   } else {
     // Product is not selected, add it
-    selectedProducts.push({ 
-      id: productId, 
-      name: productName, 
+    selectedProducts.push({
+      id: productId,
+      name: productName,
       brand: productBrand,
-      image: productImage 
+      image: productImage,
     });
-    card.classList.add('selected');
+    card.classList.add("selected");
   }
-  
+
   // Update selected products list and save to localStorage
   updateSelectedProductsList();
   saveSelectedProductsToStorage();
@@ -280,10 +286,10 @@ function handleProductSelection(e) {
 // Update the selected products list display
 function updateSelectedProductsList() {
   if (selectedProducts.length === 0) {
-    selectedProductsList.innerHTML = '<p>No products selected</p>';
+    selectedProductsList.innerHTML = "<p>No products selected</p>";
     return;
   }
-  
+
   selectedProductsList.innerHTML = selectedProducts
     .map(
       (product) => `
@@ -300,34 +306,38 @@ function updateSelectedProductsList() {
   `
     )
     .join("");
-    
+
   // Add event listeners to remove buttons
-  document.querySelectorAll('.remove-product').forEach(button => {
-    button.addEventListener('click', handleRemoveProduct);
+  document.querySelectorAll(".remove-product").forEach((button) => {
+    button.addEventListener("click", handleRemoveProduct);
   });
 }
 
 // Handle removing a product from the selected list
 function handleRemoveProduct(e) {
   e.stopPropagation(); // Prevent event bubbling
-  
-  const selectedProduct = e.currentTarget.closest('.selected-product');
+
+  const selectedProduct = e.currentTarget.closest(".selected-product");
   const productId = parseInt(selectedProduct.dataset.id);
-  
+
   // Remove from selectedProducts array
-  const index = selectedProducts.findIndex(product => product.id === productId);
+  const index = selectedProducts.findIndex(
+    (product) => product.id === productId
+  );
   if (index > -1) {
     selectedProducts.splice(index, 1);
   }
-  
+
   // Update selected products list and save to localStorage
   updateSelectedProductsList();
   saveSelectedProductsToStorage();
-  
+
   // Find and update corresponding product card in the grid, if visible
-  const productCard = document.querySelector(`.product-card[data-id="${productId}"]`);
+  const productCard = document.querySelector(
+    `.product-card[data-id="${productId}"]`
+  );
   if (productCard) {
-    productCard.classList.remove('selected');
+    productCard.classList.remove("selected");
   }
 }
 
@@ -338,7 +348,7 @@ updateSelectedProductsList();
 // Helper function to convert Markdown bold (**text**) to HTML <strong>text</strong>
 function markdownToHtml(text) {
   // Replace **text** with <strong>text</strong>
-  return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  return text.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
 }
 
 // Helper function to animate chatbot text
@@ -346,18 +356,18 @@ function typeText(element, htmlText, speed = 9, callback) {
   // Split the HTML into text and tags
   let i = 0;
   let isTag = false;
-  let output = '';
+  let output = "";
   function type() {
     if (i < htmlText.length) {
-      if (htmlText[i] === '<') isTag = true;
+      if (htmlText[i] === "<") isTag = true;
       if (isTag) {
         // Add full tag at once
-        let tag = '';
-        while (htmlText[i] !== '>' && i < htmlText.length) {
+        let tag = "";
+        while (htmlText[i] !== ">" && i < htmlText.length) {
           tag += htmlText[i];
           i++;
         }
-        tag += '>';
+        tag += ">";
         output += tag;
         i++;
         isTag = false;
@@ -381,16 +391,16 @@ function typeText(element, htmlText, speed = 9, callback) {
 clearAllBtn.addEventListener("click", () => {
   // Clear the selected products array
   selectedProducts = [];
-  
+
   // Update the list display (will show "No products selected")
   updateSelectedProductsList();
-  
+
   // Remove from localStorage
   saveSelectedProductsToStorage();
-  
+
   // Remove the 'selected' class from all product cards
-  document.querySelectorAll('.product-card.selected').forEach(card => {
-    card.classList.remove('selected');
+  document.querySelectorAll(".product-card.selected").forEach((card) => {
+    card.classList.remove("selected");
   });
 });
 
@@ -414,11 +424,11 @@ generateRoutineButton.addEventListener("click", async () => {
   sendBtn.disabled = true;
 
   // Collect selected product data
-  const productData = selectedProducts.map(product => ({
+  const productData = selectedProducts.map((product) => ({
     name: product.name,
     brand: product.brand,
     category: product.category,
-    description: product.description
+    description: product.description,
   }));
 
   // Show loading message in the chat window, replacing the temp warning if it exists
@@ -427,21 +437,26 @@ generateRoutineButton.addEventListener("click", async () => {
 
   try {
     // Send product data to the OpenAI API
-    const response = await fetch("https://the-worker.aidanggrace.workers.dev/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        messages: [
-          ...messages,
-          {
-            role: "user",
-            content: `Here are the selected products: ${JSON.stringify(productData)}. Please create a beauty routine using these products.`
-          }
-        ]
-      })
-    });
+    const response = await fetch(
+      "https://the-worker.aidanggrace.workers.dev/",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messages: [
+            ...messages,
+            {
+              role: "user",
+              content: `Here are the selected products: ${JSON.stringify(
+                productData
+              )}. Please create a beauty routine using these products.`,
+            },
+          ],
+        }),
+      }
+    );
 
     // Parse the response
     const data = await response.json();
