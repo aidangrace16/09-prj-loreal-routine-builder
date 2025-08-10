@@ -512,7 +512,7 @@ generateRoutineButton.addEventListener("click", async () => {
 
   if (selectedProducts.length === 0) {
     // Show a temporary warning message in the chat window
-    chatWindow.innerHTML += `<div class="msg ai temp-warning" id="temp-warning">Please select some products to generate a routine! 😊</div>`;
+    chatWindow.innerHTML += `<div class="msg ai temp-warning" id="temp-warning">Please select some products to generate a routine!</div>`;
     chatWindow.scrollTop = chatWindow.scrollHeight;
     return;
   }
