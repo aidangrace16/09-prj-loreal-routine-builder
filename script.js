@@ -63,10 +63,10 @@ chatWindow.style.flexDirection = "column";
 // Show initial greeting from the chatbot
 chatWindow.innerHTML = `<div class="msg ai">👋 Hello! How can I help you with L'Oréal products or routines today?</div>`;
 
-// Show initial placeholder until user selects a category
+// Show initial placeholder until user selects a category or searches
 productsContainer.innerHTML = `
   <div class="placeholder-message">
-    Select a category to view products
+    Search or select a category to view products
   </div>
 `;
 
@@ -88,7 +88,7 @@ async function loadProducts() {
 }
 
 // Create HTML for displaying product cards
-function displayProducts(products) {
+function displayProducts(products, forceRefresh = false) {
   if (products.length === 0) {
     productsContainer.innerHTML = `
       <div class="placeholder-message">
@@ -98,34 +98,114 @@ function displayProducts(products) {
     return;
   }
 
+  // Store current scroll position
+  const scrollPos = window.scrollY;
+
+  // Re-render products
+  const isMobile = window.innerWidth <= 600;
   productsContainer.innerHTML = products
     .map(
       (product) => `
-    <div class="product-card" data-id="${product.id}" data-name="${product.name}" data-brand="${product.brand}" data-image="${product.image}">
+    <div class="product-card" data-id="${product.id}" data-name="${product.name}" data-brand="${product.brand}" data-image="${product.image}" data-description="${product.description}">
       <img src="${product.image}" alt="${product.name}">
       <div class="product-info">
         <h3>${product.name}</h3>
         <p>${product.brand}</p>
       </div>
-      <div class="product-overlay">
-        <p>${product.description}</p>
-      </div>
+      ${
+        isMobile
+          ? `
+          <div class="mobile-buttons">
+            <button class="btn-description">Description</button>
+            <button class="btn-select">Select</button>
+          </div>
+          <div class="description-overlay">
+            <div class="description-content">
+              <p>${product.description}</p>
+            </div>
+            <button class="description-close">Close</button>
+          </div>
+          `
+          : `
+          <div class="product-overlay">
+            <p>${product.description}</p>
+          </div>
+          `
+      }
     </div>
   `
     )
     .join("");
 
-  // Add click event listeners to all product cards
+  // Restore scroll position
+  window.scrollTo(0, scrollPos);
+
+  // Add event listeners based on screen size
+  attachProductEventListeners(isMobile);
+}
+
+// Separate function to attach event listeners
+function attachProductEventListeners(isMobile) {
+  if (isMobile) {
+    document.querySelectorAll(".btn-description").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const card = e.target.closest(".product-card");
+        const overlay = card.querySelector(".description-overlay");
+        overlay.classList.add("active");
+      });
+    });
+
+    document.querySelectorAll(".description-close").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const overlay = e.target.closest(".description-overlay");
+        overlay.classList.remove("active");
+      });
+    });
+
+    document.querySelectorAll(".btn-select").forEach((btn) => {
+      btn.addEventListener("click", handleProductSelection);
+    });
+  } else {
+    document.querySelectorAll(".product-card").forEach((card) => {
+      card.addEventListener("click", handleProductSelection);
+    });
+  }
+
+  // Update selected state
   document.querySelectorAll(".product-card").forEach((card) => {
-    // Check if product is already selected and apply selected class
     const productId = parseInt(card.dataset.id);
     if (selectedProducts.some((product) => product.id === productId)) {
       card.classList.add("selected");
+      const selectBtn = card.querySelector(".btn-select");
+      if (selectBtn) {
+        selectBtn.classList.add("selected");
+        selectBtn.textContent = "Selected";
+      }
     }
-
-    card.addEventListener("click", handleProductSelection);
   });
 }
+
+// Add window resize listener with debounce
+let resizeTimer;
+window.addEventListener("resize", () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    const products = document.querySelectorAll(".product-card");
+    if (products.length > 0) {
+      // Get current products data and re-render
+      const currentProducts = Array.from(products).map((card) => ({
+        id: card.dataset.id,
+        name: card.dataset.name,
+        brand: card.dataset.brand,
+        image: card.dataset.image,
+        description: card.dataset.description,
+      }));
+      displayProducts(currentProducts, true);
+    }
+  }, 250); // Wait 250ms after resize ends before re-rendering
+});
 
 // Combined function to filter and display products
 async function filterAndDisplayProducts() {
@@ -133,21 +213,11 @@ async function filterAndDisplayProducts() {
   const selectedCategory = categoryFilter.value;
   const searchTerm = searchFilter.value.toLowerCase().trim();
 
-  // If the category is the initial default and there's no search term, show the placeholder.
-  if (searchTerm == "") {
-    productsContainer.innerHTML = `
-      <div class="placeholder-message">
-        Select a category to view products
-      </div>
-    `;
-    return;
-  }
-
   // Start with all products
   let filteredProducts = products;
 
-  // 1. Filter by category
-  if (selectedCategory && selectedCategory !== "all") {
+  // 1. Filter by category (only if a specific category is selected)
+  if (selectedCategory && selectedCategory !== "") {
     filteredProducts = filteredProducts.filter(
       (product) => product.category === selectedCategory
     );
@@ -163,11 +233,31 @@ async function filterAndDisplayProducts() {
     );
   }
 
+  // Show placeholder if no filters are applied
+  if (!selectedCategory && !searchTerm) {
+    productsContainer.innerHTML = `
+      <div class="placeholder-message">
+        Search or select a category to view products
+      </div>
+    `;
+    return;
+  }
+
   displayProducts(filteredProducts);
 }
 
 /* Filter and display products when category changes */
-categoryFilter.addEventListener("change", filterAndDisplayProducts);
+categoryFilter.addEventListener("change", (e) => {
+  // If user selects a specific category (not "Select a Category"), disable the default option
+  if (e.target.value !== "") {
+    const defaultOption = categoryFilter.querySelector('option[value=""]');
+    if (defaultOption) {
+      defaultOption.disabled = true;
+    }
+  }
+
+  filterAndDisplayProducts();
+});
 
 /* Filter and display products when user types in search field */
 searchFilter.addEventListener("input", filterAndDisplayProducts);
@@ -250,25 +340,29 @@ chatForm.addEventListener("submit", async (e) => {
   }
 });
 
-// Handle product selection
+// Modify handleProductSelection for mobile support
 function handleProductSelection(e) {
-  const card = e.currentTarget;
+  e.stopPropagation();
+  const isMobile = window.innerWidth <= 600;
+  const card = isMobile ? e.target.closest(".product-card") : e.currentTarget;
   const productId = parseInt(card.dataset.id);
   const productName = card.dataset.name;
   const productBrand = card.dataset.brand;
   const productImage = card.dataset.image;
 
-  // Check if product is already selected
   const existingIndex = selectedProducts.findIndex(
     (product) => product.id === productId
   );
 
   if (existingIndex > -1) {
-    // Product is already selected, remove it
     selectedProducts.splice(existingIndex, 1);
     card.classList.remove("selected");
+    if (isMobile) {
+      const selectBtn = card.querySelector(".btn-select");
+      selectBtn.classList.remove("selected");
+      selectBtn.textContent = "Select";
+    }
   } else {
-    // Product is not selected, add it
     selectedProducts.push({
       id: productId,
       name: productName,
@@ -276,9 +370,13 @@ function handleProductSelection(e) {
       image: productImage,
     });
     card.classList.add("selected");
+    if (isMobile) {
+      const selectBtn = card.querySelector(".btn-select");
+      selectBtn.classList.add("selected");
+      selectBtn.textContent = "Selected";
+    }
   }
 
-  // Update selected products list and save to localStorage
   updateSelectedProductsList();
   saveSelectedProductsToStorage();
 }
@@ -495,3 +593,4 @@ generateRoutineButton.addEventListener("click", async () => {
     sendBtn.disabled = false;
   }
 });
+
